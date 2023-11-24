@@ -88,6 +88,7 @@ public:
     typedef otBorderRoutingPrefixTableIterator PrefixTableIterator; ///< Prefix Table Iterator.
     typedef otBorderRoutingPrefixTableEntry    PrefixTableEntry;    ///< Prefix Table Entry.
     typedef otBorderRoutingRouterEntry         RouterEntry;         ///< Router Entry.
+    typedef otPdProcessedRaInfo                PdProcessedRaInfo;   ///< Router Entry.
 
     /**
      * This constant specifies the maximum number of route prefixes that may be published by `RoutingManager`
@@ -285,13 +286,27 @@ public:
      * The prefix is extracted from the platform generated RA messages handled by `ProcessPlatfromGeneratedNd()`.
      *
      * @param[out] aPrefixInfo      A reference to where the prefix info will be output to.
-     *
+     *PdProcessedRaInfo
      * @retval kErrorNone           Successfully retrieved the OMR prefix.
      * @retval kErrorNotFound       There are no valid PD prefix on this BR.
      * @retval kErrorInvalidState   The Border Routing Manager is not initialized yet.
      *
      */
     Error GetPdOmrPrefix(PrefixTableEntry &aPrefixInfo) const;
+
+    /**
+     * Returns platform generated RA message processed information.
+     *
+     * The prefix is extracted from the platform generated RA messages handled by `ProcessPlatfromGeneratedNd()`.
+     *
+     * @param[out] aPdProcessedRaInfo      A reference to where the prefix info will be output to.
+     *
+     * @retval kErrorNone           Successfully retrieved the Info.
+     * @retval kErrorNotFound       There are no valid RA process info on this BR.
+     * @retval kErrorInvalidState   The Border Routing Manager is not initialized yet.
+     *
+     */
+    Error GetPdProcessedRaInfo(PdProcessedRaInfo &aPdProcessedRaInfo);
 #endif
 
     /**
@@ -504,10 +519,7 @@ public:
      * @param[in] aLength       The length of the router advertisement message.
      *
      */
-    void ProcessPlatfromGeneratedRa(const uint8_t *aRouterAdvert, uint16_t aLength)
-    {
-        mPdPrefixManager.ProcessPlatformGeneratedRa(aRouterAdvert, aLength);
-    }
+    void ProcessPlatfromGeneratedRa(const uint8_t *aRouterAdvert, uint16_t aLength);
 
     /**
      * Enables / Disables the functions for DHCPv6 PD.
@@ -1171,6 +1183,7 @@ private:
         void               SetEnabled(bool aEnabled);
         bool               IsRunning(void) const { return GetState() == Dhcp6PdState::kDhcp6PdStateRunning; }
         bool               HasPrefix(void) const { return IsValidOmrPrefix(mPrefix.GetPrefix()); }
+        int64_t            mNumPlatformPIOProcessed;
         const Ip6::Prefix &GetPrefix(void) const { return mPrefix.GetPrefix(); }
         Dhcp6PdState       GetState(void) const
         {
@@ -1275,7 +1288,12 @@ private:
 #endif
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_DHCP6_PD_ENABLE
-    PdPrefixManager mPdPrefixManager;
+    PdPrefixManager   mPdPrefixManager;
+    bool              mRequirePD;
+    int64_t           mNumPlatformRaReceived;
+    int64_t           mLastPlatformRaTimestamp;
+    otPacketsAndBytes mInboundInternet;
+    otPacketsAndBytes mOutboundInternet;
 #endif
 
     RaInfo   mRaInfo;
