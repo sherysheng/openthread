@@ -383,14 +383,16 @@ class OtbrDocker:
         counters = {
             'inbound_unicast': counters[0],
             'inbound_multicast': counters[1],
-            'outbound_unicast': counters[2],
-            'outbound_multicast': counters[3],
-            'ra_rx': counters[4],
-            'ra_tx_success': counters[5],
-            'ra_tx_failure': counters[6],
-            'rs_rx': counters[7],
-            'rs_tx_success': counters[8],
-            'rs_tx_failure': counters[9],
+            'inbound_internet': counters[2],
+            'outbound_unicast': counters[3],
+            'outbound_multicast': counters[4],
+            'outbound_internet': counters[5],
+            'ra_rx': counters[6],
+            'ra_tx_success': counters[7],
+            'ra_tx_failure': counters[8],
+            'rs_rx': counters[9],
+            'rs_tx_success': counters[10],
+            'rs_tx_failure': counters[11],
         }
         logging.info(f'border routing counters: {counters}')
         return counters

@@ -36,6 +36,7 @@
 #include "backbone_router/bbr_leader.hpp"
 #include "backbone_router/bbr_local.hpp"
 #include "backbone_router/ndproxy_table.hpp"
+#include "border_router/routing_manager.hpp"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/locator_getters.hpp"
@@ -62,7 +63,6 @@ static const IcmpType kForwardIcmpTypes[] = {
 
 namespace ot {
 namespace Ip6 {
-
 RegisterLogModule("Ip6");
 
 Ip6::Ip6(Instance &aInstance)
@@ -1458,7 +1458,10 @@ void Ip6::UpdateBorderRoutingCounters(const Header &aHeader, uint16_t aMessageLe
     if (aIsInbound)
     {
         VerifyOrExit(!Get<Netif>().HasUnicastAddress(aHeader.GetSource()));
-
+        if (!aHeader.GetSource().MatchesPrefix(aHeader.GetDestination(), 48))
+        {
+            counter = &mBorderRoutingCounters.mInboundInternet;
+        }
         if (aHeader.GetDestination().IsMulticast())
         {
             VerifyOrExit(aHeader.GetDestination().IsMulticastLargerThanRealmLocal());
@@ -1472,7 +1475,10 @@ void Ip6::UpdateBorderRoutingCounters(const Header &aHeader, uint16_t aMessageLe
     else
     {
         VerifyOrExit(!Get<Netif>().HasUnicastAddress(aHeader.GetDestination()));
-
+        if (!aHeader.GetSource().MatchesPrefix(aHeader.GetDestination(), 48))
+        {
+            counter = &mBorderRoutingCounters.mOutboundInternet;
+        }
         if (aHeader.GetDestination().IsMulticast())
         {
             VerifyOrExit(aHeader.GetDestination().IsMulticastLargerThanRealmLocal());

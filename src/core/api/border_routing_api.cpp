@@ -104,6 +104,13 @@ otError otBorderRoutingGetPdOmrPrefix(otInstance *aInstance, otBorderRoutingPref
 
     return AsCoreType(aInstance).Get<BorderRouter::RoutingManager>().GetPdOmrPrefix(*aPrefixInfo);
 }
+
+otError otBorderRoutingGetPlatformRaInfo(otInstance *aInstance, otPdProcessedRaInfo *aPlatformRAInfo)
+{
+    AssertPointerIsNotNull(aPlatformRAInfo);
+
+    return AsCoreType(aInstance).Get<BorderRouter::RoutingManager>().GetPlatformRaInfo(*aPlatformRAInfo);
+}
 #endif
 
 otError otBorderRoutingGetFavoredOmrPrefix(otInstance *aInstance, otIp6Prefix *aPrefix, otRoutePreference *aPreference)

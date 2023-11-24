@@ -82,6 +82,10 @@ RoutingManager::RoutingManager(Instance &aInstance)
 #endif
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_DHCP6_PD_ENABLE
     , mPdPrefixManager(aInstance)
+    , mRequirePD(false)
+    , mNumPlatformRaReceived(0)
+    , mNumPlatformPIOProcessed(0)
+    , mLastPlatformRaTimestamp(0)
 #endif
     , mRsSender(aInstance)
     , mDiscoveredPrefixStaleTimer(aInstance)
@@ -210,6 +214,17 @@ Error RoutingManager::GetPdOmrPrefix(PrefixTableEntry &aPrefixInfo) const
 
     VerifyOrExit(IsInitialized(), error = kErrorInvalidState);
     error = mPdPrefixManager.GetPrefixInfo(aPrefixInfo);
+
+exit:
+    return error;
+}
+
+Error RoutingManager::GetPlatformRaInfo(PlatformRaInfo &PlatformRaInfo)
+{
+    Error error = kErrorNone;
+
+    VerifyOrExit(IsInitialized(), error = kErrorInvalidState);
+    error = GetPlatformRaInfo(PlatformRaInfo);
 
 exit:
     return error;
@@ -3433,6 +3448,7 @@ RoutingManager::PdPrefixManager::PdPrefixManager(Instance &aInstance)
     : InstanceLocator(aInstance)
     , mEnabled(false)
     , mTimer(aInstance)
+    , mNumPlatformPIOProcessed(0)
 {
     mPrefix.Clear();
 }
@@ -3447,6 +3463,21 @@ Error RoutingManager::PdPrefixManager::GetPrefixInfo(PrefixTableEntry &aInfo) co
     aInfo.mValidLifetime       = mPrefix.GetValidLifetime();
     aInfo.mPreferredLifetime   = mPrefix.GetPreferredLifetime();
     aInfo.mMsecSinceLastUpdate = TimerMilli::GetNow() - mPrefix.GetLastUpdateTime();
+
+exit:
+    return error;
+}
+
+Error RoutingManager::GetPlatformRaInfo(PlatformRaInfo &aPlatformRaInfo)
+{
+    Error error = kErrorNone;
+
+    VerifyOrExit(IsRunning(), error = kErrorNotFound);
+
+    aPlatformRaInfo.mRequirePD               = Get<RoutingManager>().mPdPrefixManager.IsRunning();
+    aPlatformRaInfo.mNumPlatformRaReceived   = mNumPlatformRaReceived;
+    aPlatformRaInfo.mNumPlatformPIOProcessed = Get<RoutingManager>().mPdPrefixManager.mNumPlatformPIOProcessed;
+    aPlatformRaInfo.mLastPlatformRaTimestamp = mLastPlatformRaTimestamp;
 
 exit:
     return error;
@@ -3501,7 +3532,7 @@ Error RoutingManager::PdPrefixManager::Process(const Ip6::Nd::RouterAdvertMessag
         {
             continue;
         }
-
+        mNumPlatformPIOProcessed++;
         entry.SetFrom(static_cast<const Ip6::Nd::PrefixInfoOption &>(option));
 
         if (!IsValidPdPrefix(entry.GetPrefix()))
@@ -3575,6 +3606,15 @@ void RoutingManager::PdPrefixManager::SetEnabled(bool aEnabled)
 
 exit:
     return;
+}
+
+void RoutingManager::ProcessPlatfromGeneratedRa(const uint8_t *aRouterAdvert, uint16_t aLength)
+{
+    mPdPrefixManager.ProcessPlatformGeneratedRa(aRouterAdvert, aLength);
+    // Collect the number of platform received RA when DHCPv6 PD enabled.
+    mNumPlatformRaReceived++;
+    // Record the timestamp of last processed RA.
+    mLastPlatformRaTimestamp = TimerMilli::GetNow().GetValue();
 }
 
 extern "C" void otPlatBorderRoutingProcessIcmp6Ra(otInstance *aInstance, const uint8_t *aMessage, uint16_t aLength)
